@@ -1,0 +1,30 @@
+{
+  "name": "gravitate-lens-toolkit",
+  "version": "1.0.0",
+  "description": "Helper library for developing Gravitate Health lens components",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "gravitate-health",
+    "lens",
+    "fhir",
+    "healthcare",
+    "epi",
+    "ips"
+  ],
+  "author": "Gravitate Health",
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^20.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gravitate-health/lens-toolkit.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
