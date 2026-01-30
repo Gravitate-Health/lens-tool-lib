@@ -5,7 +5,7 @@ A comprehensive helper library for developing Gravitate Health lens components. 
 ## Installation
 
 ```bash
-npm install gravitate-lens-toolkit
+npm install @gravitate-health/lens-tool-lib
 ```
 
 ## Quick Start
@@ -13,7 +13,7 @@ npm install gravitate-lens-toolkit
 ### Using BaseLens Class
 
 ```javascript
-const { BaseLens } = require('gravitate-lens-toolkit');
+const { BaseLens } = require('@gravitate-health/lens-tool-lib');
 
 class MyConditionLens extends BaseLens {
     getSpecification() {
@@ -51,7 +51,7 @@ const result = lens.export();
 ### Using LensBuilder (Functional Approach)
 
 ```javascript
-const { LensBuilder } = require('gravitate-lens-toolkit');
+const { LensBuilder } = require('@gravitate-health/lens-tool-lib');
 
 const myLens = LensBuilder.create({
     name: 'my-simple-lens',

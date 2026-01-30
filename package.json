@@ -1,5 +1,5 @@
 {
-  "name": "gravitate-lens-toolkit",
+  "name": "@gravitate-health/lens-tool-lib",
   "version": "1.0.0",
   "description": "Helper library for developing Gravitate Health lens components",
   "main": "src/index.js",
@@ -22,7 +22,7 @@
   "devDependencies": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/gravitate-health/lens-toolkit.git"
+    "url": "https://github.com/gravitate-health/lens-tool-lib.git"
   },
   "engines": {
     "node": ">=14.0.0"

@@ -43,7 +43,7 @@ module.exports = lens.export();
 Best for: Simple, focused lenses
 
 ```javascript
-const { LensBuilder } = require('./gravitate-lens-toolkit/src/index');
+const { LensBuilder } = require('./@gravitate-health/lens-tool-lib/src/index');
 
 module.exports = LensBuilder.create({
     name: 'my-lens',
@@ -344,8 +344,8 @@ module.exports = lens.export();
 
 ## Next Steps
 
-1. **Review examples**: Check `gravitate-lens-toolkit/examples/` for more patterns
-2. **Read API docs**: Full documentation in `gravitate-lens-toolkit/docs/API.md`
+1. **Review examples**: Check `@gravitate-health/lens-tool-lib/examples/` for more patterns
+2. **Read API docs**: Full documentation in `@gravitate-health/lens-tool-lib/docs/API.md`
 3. **Explore helpers**: Each helper module has comprehensive functions
 4. **Test thoroughly**: Use real IPS and ePI data
 

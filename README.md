@@ -16,7 +16,7 @@ The Gravitate Health Lens Toolkit simplifies lens development by providing:
 ## 📦 Installation
 
 ```bash
-npm install gravitate-lens-toolkit
+npm install @gravitate-health/lens-tool-lib
 ```
 
 Or include the library in your lens project directory.
@@ -26,7 +26,7 @@ Or include the library in your lens project directory.
 ### Option 1: Using BaseLens Class (Recommended)
 
 ```javascript
-const { BaseLens } = require('gravitate-lens-toolkit');
+const { BaseLens } = require('@gravitate-health/lens-tool-lib');
 
 class MyLens extends BaseLens {
     getSpecification() {
@@ -64,7 +64,7 @@ module.exports = lens.export();
 ### Option 2: Using LensBuilder (Functional Approach)
 
 ```javascript
-const { LensBuilder } = require('gravitate-lens-toolkit');
+const { LensBuilder } = require('@gravitate-health/lens-tool-lib');
 
 const myLens = LensBuilder.create({
     name: 'my-lens',
@@ -219,7 +219,7 @@ Full API documentation is available in `docs/API.md`.
 ### Project Structure
 
 ```
-gravitate-lens-toolkit/
+@gravitate-health/lens-tool-lib/
 ├── src/
 │   ├── fhir/
 │   │   └── resource-extractor.js
