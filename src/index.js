@@ -1,45 +1,26 @@
 /**
  * Gravitate Health Lens Toolkit
- * Main export file
+ * Main export file - Direct function exports
+ * 
+ * Import only what you need:
+ * const { getConditions, getMedications, addClasses } = require('@gravitate-health/lens-tool-lib');
  */
 
-// Core helpers
-const FHIRHelper = require('./fhir/resource-extractor');
-const EPIHelper = require('./epi/extension-parser');
-const HTMLHelper = require('./html/annotator');
-const LanguageHelper = require('./i18n/language-detector');
-const ValidationHelper = require('./validation/validators');
-const Utils = require('./utils/common');
+// Import all functions from modules
+const fhirCommon = require('./fhir/common');
+const fhirIPS = require('./fhir/ips');
+const fhirEPI = require('./fhir/epi');
+const htmlFunctions = require('./html/dom');
+const i18nFunctions = require('./i18n/language');
+const utilityFunctions = require('./utils/common');
 
-// Base lens class and builder
-const { BaseLens, LensBuilder } = require('./base-lens');
-
-// Export all modules
+// Export everything as plain functions
 module.exports = {
-    // Helpers
-    FHIRHelper,
-    EPIHelper,
-    HTMLHelper,
-    LanguageHelper,
-    ValidationHelper,
-    Utils,
-
-    // Base classes
-    BaseLens,
-    LensBuilder,
-
-    // Version
+    ...fhirCommon,
+    ...fhirIPS,
+    ...fhirEPI,
+    ...htmlFunctions,
+    ...i18nFunctions,
+    ...utilityFunctions,
     version: '1.0.0'
 };
-
-// Also export for ES6 modules if supported
-if (typeof exports !== 'undefined') {
-    exports.FHIRHelper = FHIRHelper;
-    exports.EPIHelper = EPIHelper;
-    exports.HTMLHelper = HTMLHelper;
-    exports.LanguageHelper = LanguageHelper;
-    exports.ValidationHelper = ValidationHelper;
-    exports.Utils = Utils;
-    exports.BaseLens = BaseLens;
-    exports.LensBuilder = LensBuilder;
-}

@@ -10,243 +10,287 @@ Every lens receives four global variables:
 - `epi` - ePI FHIR Bundle (electronic Product Information)
 - `ips` - IPS FHIR Bundle (International Patient Summary)
 
-## Step 2: Choose Your Approach
+## Step 2: Import What You Need
 
-### Option A: BaseLens (Class-based)
-Best for: Complex lenses with multiple methods
+Import only the functions you'll use:
 
 ```javascript
-const { BaseLens } = require('./gravitate-lens-toolkit/src/index');
+const { getConditions } = require('@gravitate-health/lens-tool-lib');
+const { findSectionsByCode } = require('@gravitate-health/lens-tool-lib');
+const { addClasses } = require('@gravitate-health/lens-tool-lib');
 
-class MyLens extends BaseLens {
-    getSpecification() {
-        return "1.0.0";
-    }
+// Or import multiple at once:
+const { 
+    getConditions, 
+    findSectionsByCode, 
+    addClasses 
+} = require('@gravitate-health/lens-tool-lib');
+```
 
-    async enhance() {
-        this.validate();
-        
-        // Your logic here
-        const conditions = this.fhir.getConditions(this.ips);
-        
-        // Return enhanced HTML
-        return this.html;
-    }
+## Step 3: Write Your Lens Functions
+
+Just export `enhance()` and `getSpecification()` functions. Context is already validated:
+
+```javascript
+const { getConditions, findSectionsByCode, addClasses } = require('@gravitate-health/lens-tool-lib');
+
+/**
+ * Main enhance function
+ * @param {Object} context - Already validated, contains pv, html, epi, ips
+ * @returns {Promise<string>} Enhanced HTML
+ */
+async function enhance(context) {
+    // Your logic here
+    const conditions = getConditions(context.ips);
+    
+    // Return enhanced HTML
+    return context.html;
 }
 
-// Export
-let lens = new MyLens({ pv, html, epi, ips });
-module.exports = lens.export();
+function getSpecification() {
+    return "1.0.0";
+}
+
+async function explanation(context, lang = "en") {
+    return "Explanation text";
+}
+
+// Export lens interface
+module.exports = {
+    enhance,
+    getSpecification,
+    explanation
+};
 ```
 
-### Option B: LensBuilder (Functional)
-Best for: Simple, focused lenses
-
-```javascript
-const { LensBuilder } = require('./@gravitate-health/lens-tool-lib/src/index');
-
-module.exports = LensBuilder.create({
-    name: 'my-lens',
-    version: '1.0.0',
-    
-    extract: async (context) => {
-        return {
-            conditions: context.fhir.getConditions(context.ips)
-        };
-    },
-    
-    annotate: async (context, data) => {
-        // Return enhanced HTML
-        return context.html;
-    }
-});
-```
-
-## Step 3: Common Patterns
+## Step 4: Common Patterns
 
 ### Pattern 1: Highlight Sections Based on IPS Data
 
 ```javascript
-async enhance() {
-    this.validate();
-    
+const { getConditions, findSectionsByCode, addClasses } = require('@gravitate-health/lens-tool-lib');
+
+async function enhance(context) {
     // 1. Extract data from IPS
-    const conditions = this.fhir.getConditions(this.ips);
+    const conditions = getConditions(context.ips);
     
     // 2. Find matching sections in ePI
-    const categories = this.epiHelper.findSectionsByCode(
-        this.epi,
+    const categories = findSectionsByCode(
+        context.epi,
         conditions.flatMap(c => c.codes)
     );
     
-    // 3. Annotate HTML
-    return await this.htmlHelper.annotate({
-        html: this.html,
-        categories: categories,
-        enhanceTag: 'highlight',
-        lensName: 'my-lens'
-    });
+    // 3. Add CSS classes to matching sections
+    return await addClasses(
+        context.html,
+        categories,
+        'highlight',
+        'condition-lens'
+    );
 }
+
+module.exports = { enhance, getSpecification: () => "1.0.0" };
 ```
 
 ### Pattern 2: Insert Warning Banner
 
 ```javascript
-async enhance() {
-    this.validate();
-    
+const { getPatientInfo, insertBanner } = require('@gravitate-health/lens-tool-lib');
+
+async function enhance(context) {
     // Check condition
-    const patient = this.fhir.getPatientInfo(this.ips);
+    const patient = getPatientInfo(context.ips);
     if (patient.age < 18) {
-        return await this.htmlHelper.insertBanner({
-            html: this.html,
-            content: '<div class="warning">Not recommended for children</div>',
-            position: 'top'
-        });
+        return await insertBanner(
+            context.html,
+            '<div class="warning">Not recommended for children</div>',
+            'top'
+        );
     }
     
-    return this.html;
+    return context.html;
 }
+
+module.exports = { enhance, getSpecification: () => "1.0.0" };
 ```
 
 ### Pattern 3: Conditional Enhancement
 
 ```javascript
-async enhance() {
-    this.validate();
-    
+const { getObservationsByCode, addClasses } = require('@gravitate-health/lens-tool-lib');
+
+async function enhance(context) {
     // Check observations
-    const labs = this.fhir.getObservationsByCode(
-        this.ips,
+    const labs = getObservationsByCode(
+        context.ips,
         ["2823-3"],  // Potassium
         { valueFilter: (obs) => obs.value < 3.5 }
     );
     
     if (labs.length > 0) {
         // Highlight renal dosing sections
-        return await this.htmlHelper.annotate({
-            html: this.html,
-            categories: ['renal-dosing'],
-            enhanceTag: 'highlight',
-            lensName: 'renal-lens'
-        });
+        return await addClasses(
+            context.html,
+            ['renal-dosing'],
+            'highlight',
+            'renal-lens'
+        );
     }
     
-    return this.html;
+    return context.html;
 }
+
+module.exports = { enhance, getSpecification: () => "1.0.0" };
 ```
 
-## Step 4: Most Used Helper Functions
+## Step 5: Most Used Helper Functions
 
-### From IPS (this.fhir)
+### From IPS (fhir/ips.js)
 
 ```javascript
+const { 
+    getPatientInfo, 
+    getConditions, 
+    getMedications, 
+    getObservationsByCode, 
+    getAllergies 
+} = require('@gravitate-health/lens-tool-lib');
+
 // Get patient info
-const patient = this.fhir.getPatientInfo(this.ips);
+const patient = getPatientInfo(context.ips);
 // → {gender, birthDate, age, ...}
 
 // Get conditions
-const conditions = this.fhir.getConditions(this.ips);
+const conditions = getConditions(context.ips);
 // → [{id, codes, text, clinicalStatus}]
 
 // Get medications
-const medications = this.fhir.getMedications(this.ips);
+const medications = getMedications(context.ips);
 // → [{resourceType, codes}] (includes ingredients)
 
 // Get observations
-const obs = this.fhir.getObservationsByCode(this.ips, ["2823-3"]);
+const obs = getObservationsByCode(context.ips, ["2823-3"]);
 // → [{id, codes, value, unit}]
 
 // Get allergies
-const allergies = this.fhir.getAllergies(this.ips);
+const allergies = getAllergies(context.ips);
 // → [{id, codes, text, criticality}]
 ```
 
-### From ePI (this.epiHelper)
+### From ePI (fhir/epi.js)
+
+ePI IS FHIR - these functions work with ePI bundles.
 
 ```javascript
+const { 
+    findSectionsByCode, 
+    matchProductIdentifier, 
+    getLanguage 
+} = require('@gravitate-health/lens-tool-lib');
+
 // Find sections by code
-const categories = this.epiHelper.findSectionsByCode(
-    this.epi,
+const categories = findSectionsByCode(
+    context.epi,
     ["77386006", "69840006"]
 );
 // → ["pregnancy-section", "breastfeeding-section"]
 
 // Match product identifier
-const isMatch = this.epiHelper.matchProductIdentifier(
-    this.epi,
+const isMatch = matchProductIdentifier(
+    context.epi,
     ["CIT-204447"]
 );
 // → true/false
 
 // Get language
-const lang = this.epiHelper.getLanguage(this.epi);
+const lang = getLanguage(context.epi);
 // → "en", "pt-PT", etc.
 ```
 
-### HTML Annotation (this.htmlHelper)
+### HTML Functions (html/dom.js)
 
 ```javascript
-// Basic annotation
-const result = await this.htmlHelper.annotate({
-    html: this.html,
-    categories: ['section-4.4'],
-    enhanceTag: 'highlight',
-    lensName: 'my-lens'
-});
+const { addClasses, insertBanner, traverseDOM } = require('@gravitate-health/lens-tool-lib');
+
+// Add CSS classes to elements
+const result = await addClasses(
+    context.html,
+    ['section-4.4'],
+    'highlight',
+    'my-lens'
+);
 
 // Insert banner
-const result = await this.htmlHelper.insertBanner({
-    html: this.html,
-    content: '<div>Warning</div>',
-    position: 'top'
+const result = await insertBanner(
+    context.html,
+    '<div>Warning</div>',
+    'top'
+);
+
+// Traverse DOM with visitor function
+const result = await traverseDOM(context.html, (element, doc) => {
+    if (element.classList.contains('warning')) {
+        element.style.color = 'red';
+    }
 });
 ```
 
-### Language (this.lang)
+### Language Functions (i18n/language.js)
 
 ```javascript
-// Detect language
-const lang = this.detectLanguage();  // or this.lang.detectLanguage(this.epi)
+const { 
+    getLanguage,  // from fhir/epi
+    getStandardMessages,
+    getLangKey,
+    translate
+} = require('@gravitate-health/lens-tool-lib');
+
+// Detect language (use getLanguage from fhir/epi module)
+const lang = getLanguage(context.epi);
 
 // Get messages
-const messages = this.getMessages('standard');
+const messages = getStandardMessages(lang);
 // → {noDataFound: "...", dataDetected: "..."}
-
-const pregMessages = this.getMessages('pregnancy');
-// → {childbearingAge: "...", pregnant: "..."}
 ```
 
-### Validation (this.validator)
+### Utilities (utils/common.js)
 
 ```javascript
-// Validate all at once
-this.validate();  // Checks IPS, ePI, HTML, and Composition
+const { 
+    calculateAge, 
+    addMonths, 
+    isDateInRange, 
+    deepEqual, 
+    arrayContains,
+    ensureArray,
+    isEmpty,
+    validateRequiredFields,
+    safeGet
+} = require('@gravitate-health/lens-tool-lib');
 
-// Individual validation
-this.validator.requireIPS(this.ips);
-this.validator.requireEPI(this.epi);
-this.validator.requireComposition(this.epi);
-```
+// Array utilities
+ensureArray(value);           // Always returns array
+isEmpty(value);               // Check if value is empty/null
 
-### Utilities (this.utils)
+// Object utilities  
+validateRequiredFields(obj, fields);  // Throws if missing fields
+safeGet(obj, path, defaultVal);       // Safe nested access
 
-```javascript
 // Age calculation
-const age = this.utils.calculateAge("1990-05-15");
+const age = calculateAge("1990-05-15");
 
 // Date utilities
-const futureDate = this.utils.addMonths(new Date(), 10);
-const isInRange = this.utils.isDateInRange(date, start, end);
+const futureDate = addMonths(new Date(), 10);
+const isInRange = isDateInRange(date, start, end);
 
 // Deep equality
-if (this.utils.deepEqual(obj1, obj2)) { }
+if (deepEqual(obj1, obj2)) { }
 
 // Array contains
-if (this.utils.arrayContains(array, {code: "123"}, ["code"])) { }
+if (arrayContains(array, {code: "123"}, ["code"])) { }
 ```
 
-## Step 5: Test Your Lens
+## Step 6: Test Your Lens
 
 1. Save your lens file
 2. Test with the Gravitate Health testing environment
@@ -255,91 +299,91 @@ if (this.utils.arrayContains(array, {code: "123"}, ["code"])) { }
 
 ## Common Pitfalls to Avoid
 
-❌ **Don't forget to validate**
-```javascript
-// BAD - no validation
-async enhance() {
-    const conditions = this.fhir.getConditions(this.ips);
-    // ...
-}
-
-// GOOD - validate first
-async enhance() {
-    this.validate();  // ← Add this!
-    const conditions = this.fhir.getConditions(this.ips);
-    // ...
-}
-```
-
 ❌ **Don't forget to return HTML**
 ```javascript
 // BAD - no return
-async enhance() {
-    this.validate();
+async function enhance(context) {
+    const conditions = getConditions(context.ips);
     // ... logic
 }
 
 // GOOD - always return HTML
-async enhance() {
-    this.validate();
+async function enhance(context) {
+    const conditions = getConditions(context.ips);
     // ... logic
-    return this.html;  // ← Return something!
+    return context.html;  // ← Return something!
 }
 ```
 
 ❌ **Don't forget async/await**
 ```javascript
+const { addClasses } = require('@gravitate-health/lens-tool-lib');
+
 // BAD - missing await
-const result = this.htmlHelper.annotate({...});
+const result = addClasses(html, categories, 'highlight');
 
 // GOOD - use await
-const result = await this.htmlHelper.annotate({...});
+const result = await addClasses(html, categories, 'highlight');
+```
+
+✅ **Context is already validated!**
+```javascript
+// No need to validate - context is ready to use
+async function enhance(context) {
+    // Just use it directly!
+    const conditions = getConditions(context.ips);
+    // ...
+}
 ```
 
 ## Example: Complete Simple Lens
 
 ```javascript
-const { BaseLens } = require('./gravitate-lens-toolkit/src/index');
+const { 
+    getAllergies, 
+    findSectionsByCode, 
+    addClasses 
+} = require('@gravitate-health/lens-tool-lib');
 
-class SimpleAllergyLens extends BaseLens {
-    getSpecification() {
-        return "1.0.0";
+/**
+ * Simple allergy lens - highlights allergy-related sections
+ */
+async function enhance(context) {
+    // Step 1: Get allergies from IPS
+    const allergies = getAllergies(context.ips);
+    
+    if (allergies.length === 0) {
+        return context.html;  // No changes needed
     }
-
-    async enhance() {
-        // Step 1: Validate
-        this.validate();
-        
-        // Step 2: Get allergies from IPS
-        const allergies = this.fhir.getAllergies(this.ips);
-        
-        if (allergies.length === 0) {
-            return this.html;  // No changes needed
-        }
-        
-        // Step 3: Find matching sections in ePI
-        const categories = this.epiHelper.findSectionsByCode(
-            this.epi,
-            allergies.flatMap(a => a.codes)
-        );
-        
-        if (categories.length === 0) {
-            return this.html;  // No matching sections
-        }
-        
-        // Step 4: Annotate HTML
-        return await this.htmlHelper.annotate({
-            html: this.html,
-            categories: categories,
-            enhanceTag: 'highlight',
-            lensName: 'allergy-lens'
-        });
+    
+    // Step 2: Find matching sections in ePI
+    const categories = findSectionsByCode(
+        context.epi,
+        allergies.flatMap(a => a.codes)
+    );
+    
+    if (categories.length === 0) {
+        return context.html;  // No matching sections
     }
+    
+    // Step 3: Add CSS classes to matching sections
+    return await addClasses(
+        context.html,
+        categories,
+        'highlight',
+        'allergy-lens'
+    );
 }
 
-// Export for lens execution environment
-let lens = new SimpleAllergyLens({ pv, html, epi, ips });
-module.exports = lens.export();
+function getSpecification() {
+    return "1.0.0";
+}
+
+// Export lens interface
+module.exports = {
+    enhance,
+    getSpecification
+};
 ```
 
 ## Next Steps

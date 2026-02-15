@@ -1,4 +1,4 @@
-# Gravitate Health Lens Toolkit
+# Gravitate Health Lens Toolkit - API Documentation
 
 A comprehensive helper library for developing Gravitate Health lens components. This toolkit provides standardized functions for common operations with FHIR resources, ePI processing, HTML annotation, and internationalization.
 
@@ -10,77 +10,63 @@ npm install @gravitate-health/lens-tool-lib
 
 ## Quick Start
 
-### Using BaseLens Class
+### Simple Function-Based Approach
+
+Just export `enhance()` and `getSpecification()` functions. Import only what you need:
 
 ```javascript
-const { BaseLens } = require('@gravitate-health/lens-tool-lib');
+const { getConditions, findSectionsByCode, addClasses } = require('@gravitate-health/lens-tool-lib');
 
-class MyConditionLens extends BaseLens {
-    getSpecification() {
-        return "1.0.0";
-    }
-
-    async enhance() {
-        // Validate inputs
-        this.validate();
-        
-        // Extract conditions from IPS
-        const conditions = this.fhir.getConditions(this.ips);
-        
-        // Find matching sections in ePI
-        const categories = this.epiHelper.findSectionsByCode(
-            this.epi,
-            conditions.flatMap(c => c.codes)
-        );
-        
-        // Annotate HTML
-        return await this.htmlHelper.annotate({
-            html: this.html,
-            categories: categories,
-            enhanceTag: 'highlight',
-            lensName: 'my-condition-lens'
-        });
-    }
+/**
+ * Main enhance function - receives validated context
+ * @param {Object} context - Contains pv, html, epi, ips (already validated)
+ * @returns {Promise<string>} Enhanced HTML
+ */
+async function enhance(context) {
+    // Extract conditions from IPS
+    const conditions = getConditions(context.ips);
+    
+    // Find matching sections in ePI
+    const categories = findSectionsByCode(
+        context.epi,
+        conditions.flatMap(c => c.codes)
+    );
+    
+    // Add CSS classes to matching sections
+    return await addClasses(
+        context.html,
+        categories,
+        'highlight',
+        'my-condition-lens'
+    );
 }
 
-// Create lens instance with context
-const lens = new MyConditionLens({ pv, html, epi, ips });
-const result = lens.export();
+function getSpecification() {
+    return "1.0.0";
+}
+
+async function explanation(context, lang = "en") {
+    return "Explanation text";
+}
+
+module.exports = {
+    enhance,
+    getSpecification,
+    explanation
+};
 ```
 
-### Using LensBuilder (Functional Approach)
+## Lens Context
 
-```javascript
-const { LensBuilder } = require('@gravitate-health/lens-tool-lib');
+Your lens functions receive a `context` object that is already validated and contains:
+- `context.pv` - Persona Vector (patient preferences)
+- `context.html` - HTML content from ePI
+- `context.epi` - ePI FHIR Bundle
+- `context.ips` - IPS FHIR Bundle
 
-const myLens = LensBuilder.create({
-    name: 'my-simple-lens',
-    version: '1.0.0',
-    
-    extract: async (context) => {
-        const conditions = context.fhir.getConditions(context.ips);
-        return { conditions };
-    },
-    
-    annotate: async (context, data) => {
-        const categories = context.epiHelper.findSectionsByCode(
-            context.epi,
-            data.conditions.flatMap(c => c.codes)
-        );
-        
-        return await context.htmlHelper.annotate({
-            html: context.html,
-            categories,
-            enhanceTag: 'highlight',
-            lensName: 'my-simple-lens'
-        });
-    }
-});
-```
+No need to validate or create context - it's ready to use!
 
 ## API Documentation
-
-### FHIRHelper
 
 Functions for extracting and parsing FHIR resources from IPS bundles.
 
@@ -230,58 +216,72 @@ const lang = EPIHelper.getLanguage(epiBundle);
 
 ### HTMLHelper
 
-Functions for DOM manipulation and HTML annotation.
+Functions for DOM manipulation and HTML processing.
 
-#### `annotate(options)`
-Annotate HTML by adding CSS classes to elements.
+#### `addClasses(html, categories, enhanceTag, lensName)`
+Add CSS classes to elements matching specific categories.
+
+**Parameters:**
+- `html` (string): HTML string to process
+- `categories` (Array<string>): Array of CSS class names to search for
+- `enhanceTag` (string): CSS class to add (e.g., "highlight", "collapse")
+- `lensName` (string, optional): Lens name for additional CSS class
+
+**Returns:** Promise<string> - Modified HTML string
 
 ```javascript
-const result = await HTMLHelper.annotate({
-    html: htmlData,
-    categories: ['pregnancy-section', 'contraindications'],
-    enhanceTag: 'highlight',
-    lensName: 'pregnancy-lens'
-});
+const result = await addClasses(
+    htmlData,
+    ['pregnancy-section', 'contraindications'],
+    'highlight',
+    'pregnancy-lens'
+);
 ```
 
-#### `insertBanner(options)`
+#### `insertBanner(html, content, position, cssClass)`
 Insert banner or content at top or bottom of HTML.
 
+**Parameters:**
+- `html` (string): HTML string
+- `content` (string): Content to insert (HTML string)
+- `position` (string, optional): 'top' or 'bottom' (default: 'top')
+- `cssClass` (string, optional): CSS class for wrapper div
+
+**Returns:** Promise<string> - Modified HTML string
+
 ```javascript
-const result = await HTMLHelper.insertBanner({
-    html: htmlData,
-    content: '<div class="warning">Important notice</div>',
-    position: 'top',
-    cssClass: 'alert-banner'
-});
+const result = await insertBanner(
+    htmlData,
+    '<div class="warning">Important notice</div>',
+    'top',
+    'alert-banner'
+);
 ```
 
-#### `wrapWithLinks(options)`
-Wrap elements with links.
+#### `traverseDOM(html, visitor)`
+Traverse DOM tree and apply visitor function to each element.
+
+**Parameters:**
+- `html` (string): HTML string
+- `visitor` (Function): Function called for each element: `visitor(element, document)`
+
+**Returns:** Promise<string> - Modified HTML string
 
 ```javascript
-const result = await HTMLHelper.wrapWithLinks({
-    html: htmlData,
-    categories: ['section-4.4'],
-    linkBuilder: (element) => ({
-        href: 'https://example.com/questionnaire',
-        target: '_blank'
-    }),
-    lensName: 'questionnaire-lens'
+// Add class to all divs with specific attribute
+const result = await traverseDOM(htmlData, (element, doc) => {
+    if (element.tagName === 'DIV' && element.hasAttribute('data-risk')) {
+        element.classList.add('high-risk');
+    }
+});
+
+// Remove all images
+const result = await traverseDOM(htmlData, (element) => {
+    if (element.tagName === 'IMG') {
+        element.remove();
+    }
 });
 ```
-
-#### `insertQuestionnaireLink(options)`
-Insert questionnaire link (specific use case).
-
-```javascript
-const result = await HTMLHelper.insertQuestionnaireLink({
-    html: htmlData,
-    categories: ['high-risk-section'],
-    linkURL: 'https://example.com/questionnaire',
-    messages: {
-        bannerWarning: "⚠️ Warning",
-        questionnaireLink: "Fill questionnaire"
     },
     lensName: 'questionnaire-lens'
 });
@@ -340,100 +340,142 @@ const messages = LanguageHelper.getQuestionnaireMessages("da");
 
 ---
 
-### ValidationHelper
+### Utils (utils/common.js)
 
-Functions for validation and error handling.
+General utility functions for common operations.
 
-#### `requireIPS(ips)` / `requireEPI(epi)`
-Validate required bundles (throws error if invalid).
+#### Array Utilities
+
+**`ensureArray(value)`**  
+Ensures value is always an array.
 
 ```javascript
-ValidationHelper.requireIPS(ips);
-ValidationHelper.requireEPI(epi);
+ensureArray(null);           // → []
+ensureArray("single");       // → ["single"]
+ensureArray([1, 2, 3]);      // → [1, 2, 3]
 ```
 
-#### `hasComposition(epiBundle)` / `requireComposition(epiBundle)`
-Check for or require Composition resource.
+**`isEmpty(value)`**  
+Check if value is empty/null/undefined.
 
 ```javascript
-if (ValidationHelper.hasComposition(epiBundle)) {
-    // ...
-}
-ValidationHelper.requireComposition(epiBundle); // throws if not found
+isEmpty(null);               // → true
+isEmpty([]);                 // → true
+isEmpty({});                 // → true
+isEmpty("text");             // → false
 ```
 
-#### `validateBundle(bundle, bundleType)`
-Validate FHIR Bundle structure.
+**`arrayContains(array, target, keys)`**  
+Check if array contains object with matching properties.
 
 ```javascript
-const validation = ValidationHelper.validateBundle(ipsBundle, "IPS");
-// Returns: {valid: true/false, errors: [...]}
+arrayContains(
+    [{code: "123", system: "test"}],
+    {code: "123"},
+    ["code"]
+); // → true
 ```
 
-#### `validateLensContext(context)`
-Validate complete lens context.
+#### Object Utilities
+
+**`validateRequiredFields(obj, fields)`**  
+Validate required fields exist (throws if missing).
 
 ```javascript
-const validation = ValidationHelper.validateLensContext({
-    ips, epi, html, pv
-});
+validateRequiredFields(
+    {name: "John"},
+    ["name", "age"]
+); // throws Error
+```
+
+**`safeGet(obj, path, defaultValue)`**  
+Safely access nested properties.
+
+```javascript
+safeGet(obj, "user.address.city", "Unknown");
+```
+
+#### Date Utilities
+
+**`calculateAge(birthDate)`**  
+Calculate age from birth date.
+
+```javascript
+calculateAge("1990-05-15"); // → 35
+```
+
+**`addMonths(date, months)`**  
+Add months to a date.
+
+```javascript
+addMonths(new Date(), 6); // → Date 6 months from now
+```
+
+**`isDateInRange(date, start, end)`**  
+Check if date is within range.
+
+```javascript
+isDateInRange(new Date(), startDate, endDate); // → true/false
 ```
 
 ---
 
-### Utils
+### FHIR Code Validation (fhir/common.js)
 
-General utility functions.
+Functions for validating FHIR codes and codings.
 
-#### `deepEqual(obj1, obj2)`
-Deep equality check for objects.
-
-```javascript
-if (Utils.deepEqual(extension1, extension2)) {
-    // ...
-}
-```
-
-#### `calculateAge(birthDate)`
-Calculate age from birth date.
+**`isValidCode(code)`**  
+Check if code object is valid.
 
 ```javascript
-const age = Utils.calculateAge("1990-05-15");
-// Returns: 35
+isValidCode({code: "123", system: "test"}); // → true
+isValidCode({code: "123"});                  // → true
+isValidCode({});                             // → false
 ```
 
-#### `codesMatch(code1, code2, includeSystem)`
+**`areValidCodes(codes)`**  
+Check if array contains valid codes.
+
+```javascript
+areValidCodes([
+    {code: "123", system: "test"},
+    {code: "456"}
+]); // → true
+```
+
+**`codesMatch(code1, code2, includeSystem)`**  
 Check if two codes match.
 
 ```javascript
-if (Utils.codesMatch(
+codesMatch(
     {code: "123", system: "http://..."},
     {code: "123", system: "http://..."}
-)) {
-    // ...
-}
+); // → true
 ```
 
-#### `arrayContains(array, searchObj, compareFields)`
-Check if array contains object matching criteria.
+---
+
+## Module Organization
+
+The library is organized into focused modules:
+
+- **fhir/common.js** - Common FHIR utilities for all bundle types
+- **fhir/ips.js** - IPS-specific resource extraction  
+- **fhir/epi.js** - ePI-specific functions
+- **html/dom.js** - DOM manipulation utilities
+- **i18n/language.js** - Translation and i18n
+- **utils/common.js** - General utility functions
+
+Import only what you need:
 
 ```javascript
-const exists = Utils.arrayContains(
-    medications,
-    {code: "204447", system: "http://..."},
-    ["code", "system"]
-);
+const { 
+    getConditions,           // from fhir/ips
+    findSectionsByCode,      // from fhir/epi
+    addClasses,              // from html/dom
+    ensureArray              // from utils/common
+} = require('@gravitate-health/lens-tool-lib');
 ```
-
-#### Other utilities
-- `isDateInRange(date, start, end)`
-- `addMonths(date, months)`
-- `addYears(date, years)`
-- `flatten(array, depth)`
-- `groupBy(array, key)`
-- `unique(array)`
-- `deepMerge(target, source)`
-- `retry(fn, maxAttempts, delay)`
 
 ---
 

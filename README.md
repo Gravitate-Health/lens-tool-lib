@@ -8,10 +8,9 @@ The Gravitate Health Lens Toolkit simplifies lens development by providing:
 
 - **FHIR Resource Extraction**: Easy access to IPS data (conditions, medications, observations, etc.)
 - **ePI Processing**: Parse extensions, match identifiers, find annotated sections
-- **HTML Annotation**: DOM manipulation with environment detection (Node.js/browser)
+- **HTML DOM Manipulation**: DOM manipulation with environment detection (Node.js/browser)
 - **Internationalization**: Language detection and multi-language messages
-- **Validation**: Input validation and helpful error messages
-- **Utilities**: Common functions (date calculations, deep equality, etc.)
+- **Utilities**: Common functions (date calculations, deep equality, validation helpers, etc.)
 
 ## 📦 Installation
 
@@ -23,183 +22,224 @@ Or include the library in your lens project directory.
 
 ## 🚀 Quick Start
 
-### Option 1: Using BaseLens Class (Recommended)
+### Simple Function-Based Approach
+
+Just export `enhance()` and `getSpecification()` functions. Import only what you need:
 
 ```javascript
-const { BaseLens } = require('@gravitate-health/lens-tool-lib');
+const { getConditions } = require('@gravitate-health/lens-tool-lib');
+const { findSectionsByCode } = require('@gravitate-health/lens-tool-lib');
+const { addClasses } = require('@gravitate-health/lens-tool-lib');
 
-class MyLens extends BaseLens {
-    getSpecification() {
-        return "1.0.0";
-    }
+// Or import multiple functions at once:
+const { 
+    getConditions, 
+    findSectionsByCode, 
+    addClasses 
+} = require('@gravitate-health/lens-tool-lib');
 
-    async enhance() {
-        // Validate inputs
-        this.validate();
-        
-        // Extract data from IPS
-        const conditions = this.fhir.getConditions(this.ips);
-        
-        // Find matching ePI sections
-        const categories = this.epiHelper.findSectionsByCode(
-            this.epi,
-            conditions.flatMap(c => c.codes)
-        );
-        
-        // Annotate HTML
-        return await this.htmlHelper.annotate({
-            html: this.html,
-            categories: categories,
-            enhanceTag: 'highlight',
-            lensName: 'my-lens'
-        });
-    }
+/**
+ * Main enhance function - receives validated context
+ * @param {Object} context - Contains pv, html, epi, ips (already validated)
+ * @returns {Promise<string>} Enhanced HTML
+ */
+async function enhance(context) {
+    // Extract data from IPS
+    const conditions = getConditions(context.ips);
+    
+    // Find matching ePI sections
+    const categories = findSectionsByCode(
+        context.epi,
+        conditions.flatMap(c => c.codes)
+    );
+    
+    // Add CSS classes to matching sections
+    return await addClasses(
+        context.html,
+        categories,
+        'highlight',
+        'my-lens'
+    );
 }
 
-// Export for lens execution environment
-let lens = new MyLens({ pv, html, epi, ips });
-module.exports = lens.export();
-```
+function getSpecification() {
+    return "1.0.0";
+}
 
-### Option 2: Using LensBuilder (Functional Approach)
+async function explanation(context, lang = "en") {
+    return "Explanation text";
+}
 
-```javascript
-const { LensBuilder } = require('@gravitate-health/lens-tool-lib');
-
-const myLens = LensBuilder.create({
-    name: 'my-lens',
-    version: '1.0.0',
-    
-    extract: async (context) => {
-        const conditions = context.fhir.getConditions(context.ips);
-        return { conditions };
-    },
-    
-    annotate: async (context, data) => {
-        const categories = context.epiHelper.findSectionsByCode(
-            context.epi,
-            data.conditions.flatMap(c => c.codes)
-        );
-        
-        return await context.htmlHelper.annotate({
-            html: context.html,
-            categories,
-            enhanceTag: 'highlight',
-            lensName: 'my-lens'
-        });
-    }
-});
-
-module.exports = myLens;
+// Export lens interface
+module.exports = {
+    enhance,
+    getSpecification,
+    explanation
+};
 ```
 
 ## 📚 Core Modules
 
-### FHIRHelper
-Extract and parse FHIR resources from IPS bundles.
+### Lens Context
+
+Your lens functions receive a `context` object that is already validated and contains:
+- `context.pv` - Persona Vector (patient preferences)
+- `context.html` - HTML content from ePI
+- `context.epi` - ePI FHIR Bundle
+- `context.ips` - IPS FHIR Bundle
+
+No need to validate or create context - it's ready to use!
+
+### FHIR Functions
+
+The library provides three main FHIR modules:
+
+#### Common FHIR Functions (from fhir/common.js)
+Low-level helpers for working with FHIR resources:
+- `getResourcesByType()` - Get resources by type from any bundle
+- `resolveReference()` - Resolve FHIR references
+- `extractCodes()` - Extract codes from CodeableConcepts
+- `matchCodes()` - Match codes with optional system matching
+
+#### IPS Functions (from fhir/ips.js)
+Extract and parse FHIR resources from IPS bundles:
 
 ```javascript
+const { 
+    getConditions, 
+    getMedications, 
+    getObservationsByCode, 
+    getPatientInfo 
+} = require('@gravitate-health/lens-tool-lib');
+
 // Get all conditions
-const conditions = FHIRHelper.getConditions(ips);
+const conditions = getConditions(context.ips);
 
 // Get all medications (handles references and ingredients)
-const medications = FHIRHelper.getMedications(ips);
+const medications = getMedications(context.ips);
 
 // Get observations with filters
-const lowPotassium = FHIRHelper.getObservationsByCode(
-    ips,
+const lowPotassium = getObservationsByCode(
+    context.ips,
     ["2823-3"],
     { valueFilter: (obs) => obs.value < 3.5 }
 );
 
 // Get patient info with calculated age
-const patient = FHIRHelper.getPatientInfo(ips);
+const patient = getPatientInfo(context.ips);
 ```
 
-### EPIHelper
-Parse ePI extensions and identifiers.
+#### ePI Functions (from fhir/epi.js)
+Parse ePI bundles and extensions (ePI IS FHIR).
 
 ```javascript
+const { 
+    findSectionsByCode, 
+    matchProductIdentifier, 
+    getLanguage 
+} = require('@gravitate-health/lens-tool-lib');
+
 // Find sections by code
-const categories = EPIHelper.findSectionsByCode(
-    epi,
+const categories = findSectionsByCode(
+    context.epi,
     ["77386006", "69840006"]
 );
 
 // Match product identifiers
-const isMatch = EPIHelper.matchProductIdentifier(
-    epi,
+const isMatch = matchProductIdentifier(
+    context.epi,
     ["CIT-204447"]
 );
 
 // Get language
-const lang = EPIHelper.getLanguage(epi);
+const lang = getLanguage(context.epi);
 ```
 
-### HTMLHelper
-DOM manipulation and annotation.
+### HTML Functions (from html/dom.js)
+DOM manipulation and HTML processing.
 
 ```javascript
-// Annotate sections
-const result = await HTMLHelper.annotate({
-    html: htmlData,
-    categories: ['section-4.4', 'contraindications'],
-    enhanceTag: 'highlight',
-    lensName: 'my-lens'
-});
+const { addClasses, insertBanner, traverseDOM } = require('@gravitate-health/lens-tool-lib');
+
+// Add CSS classes to elements
+const result = await addClasses(
+    context.html,
+    ['section-4.4', 'contraindications'],
+    'highlight',
+    'my-lens'
+);
 
 // Insert banner
-const result = await HTMLHelper.insertBanner({
-    html: htmlData,
-    content: '<div>Warning message</div>',
-    position: 'top'
+const result = await insertBanner(
+    context.html,
+    '<div>Warning message</div>',
+    'top',
+    'banner-class'
+);
+
+// Traverse DOM with custom visitor
+const result = await traverseDOM(context.html, (element, doc) => {
+    if (element.tagName === 'DIV' && element.classList.contains('warning')) {
+        element.classList.add('highlight');
+    }
 });
 ```
 
-### LanguageHelper
+### Language Functions (from i18n/language.js)
 Language detection and internationalization.
 
 ```javascript
-// Detect language
-const lang = LanguageHelper.detectLanguage(epi);
+const { 
+    getLanguage,  // from fhir/epi
+    getStandardMessages, 
+    getLangKey,
+    translate
+} = require('@gravitate-health/lens-tool-lib');
+
+// Detect language (use getLanguage from fhir/epi module)
+const lang = getLanguage(context.epi);
 
 // Get translated messages
-const messages = LanguageHelper.getStandardMessages(lang);
-const conditionMessages = LanguageHelper.getConditionMessages(lang);
+const messages = getStandardMessages(lang);
 ```
 
-### ValidationHelper
-Input validation and error handling.
+### Utility Functions (from utils/common.js)
+General utility functions including validation helpers.
 
 ```javascript
-// Validate required inputs
-ValidationHelper.requireIPS(ips);
-ValidationHelper.requireEPI(epi);
-ValidationHelper.requireComposition(epi);
+const { 
+    deepEqual,
+    calculateAge,
+    addMonths,
+    isDateInRange,
+    unique,
+    groupBy,
+    ensureArray,
+    isEmpty,
+    validateRequiredFields,
+    safeGet
+} = require('@gravitate-health/lens-tool-lib');
 
-// Validate complete context
-const validation = ValidationHelper.validateLensContext({
-    ips, epi, html, pv
-});
-```
-
-### Utils
-General utility functions.
-
-```javascript
 // Deep equality
-if (Utils.deepEqual(obj1, obj2)) { }
+if (deepEqual(obj1, obj2)) { }
 
 // Age calculation
-const age = Utils.calculateAge("1990-05-15");
+const age = calculateAge("1990-05-15");
 
 // Date utilities
-const futureDate = Utils.addMonths(new Date(), 10);
-const isInRange = Utils.isDateInRange(date, start, end);
+const futureDate = addMonths(new Date(), 10);
+const isInRange = isDateInRange(date, start, end);
 
 // Array utilities
-const unique = Utils.unique([1, 2, 2, 3]);
-const grouped = Utils.groupBy(items, 'type');
+const uniqueValues = unique([1, 2, 2, 3]);
+const grouped = groupBy(items, 'type');
+
+// Validation helpers
+const arr = ensureArray(value);
+if (isEmpty(arr)) { }
+
+const validation = validateRequiredFields(obj, ['field1', 'field2']);
+const value = safeGet(obj, 'nested.path.value', defaultValue);
 ```
 
 ## 📖 Examples
@@ -207,8 +247,10 @@ const grouped = Utils.groupBy(items, 'type');
 See the `examples/` directory for complete working examples:
 
 - **simple-condition-lens.js**: Highlight sections based on patient conditions
-- **pregnancy-lens-builder.js**: Pregnancy/breastfeeding warnings using LensBuilder
+- **pregnancy-lens.js**: Pregnancy/breastfeeding warnings with age checks
 - **medication-interaction-lens.js**: Drug interaction warnings
+
+All examples use the functional approach with `createLens()`.
 
 ## 📄 Documentation
 
@@ -222,22 +264,19 @@ Full API documentation is available in `docs/API.md`.
 @gravitate-health/lens-tool-lib/
 ├── src/
 │   ├── fhir/
-│   │   └── resource-extractor.js
-│   ├── epi/
-│   │   └── extension-parser.js
+│   │   ├── common.js       # Common FHIR helpers
+│   │   ├── ips.js          # IPS-specific functions
+│   │   └── epi.js          # ePI-specific functions (ePI IS FHIR)
 │   ├── html/
-│   │   └── annotator.js
+│   │   └── dom.js          # DOM manipulation utilities
 │   ├── i18n/
-│   │   └── language-detector.js
-│   ├── validation/
-│   │   └── validators.js
+│   │   └── language.js     # Translations and i18n
 │   ├── utils/
-│   │   └── common.js
-│   ├── base-lens.js
+│   │   └── common.js       # Utility functions
 │   └── index.js
 ├── examples/
 │   ├── simple-condition-lens.js
-│   ├── pregnancy-lens-builder.js
+│   ├── pregnancy-lens.js
 │   └── medication-interaction-lens.js
 ├── docs/
 │   └── API.md
@@ -254,6 +293,7 @@ Full API documentation is available in `docs/API.md`.
 - **Documentation**: Comprehensive API docs and examples
 - **Maintainability**: Bug fixes benefit all lenses
 - **Faster Development**: Focus on business logic, not infrastructure
+- **No Classes**: Pure functional approach - just import and use functions
 
 ## 📝 License
 
