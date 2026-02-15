@@ -197,6 +197,7 @@ Follow these steps to release a new version of the library package:
     ```bash
     npm publish
     ```
+    *   If you have 2FA enabled, you'll need to provide OTP: `npm publish --otp=123456`
     *   Uploads package to npm registry
     *   Package becomes available at `@gravitate-health/lens-tool-lib@{version}`
     *   Verify publication at https://www.npmjs.com/package/@gravitate-health/lens-tool-lib
