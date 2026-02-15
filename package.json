@@ -4,7 +4,10 @@
   "description": "Helper library for developing Gravitate Health lens components",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose"
   },
   "keywords": [
     "gravitate-health",
@@ -19,12 +22,27 @@
   "dependencies": {
     "jsdom": "^20.0.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gravitate-health/lens-tool-lib.git"
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js"
+    ],
+    "coverageDirectory": "coverage",
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ],
+    "verbose": true
   }
 }
