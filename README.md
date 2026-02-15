@@ -92,7 +92,7 @@ No need to validate or create context - it's ready to use!
 
 ### FHIR Functions
 
-The library provides three main FHIR modules:
+The library provides four main FHIR modules:
 
 #### Common FHIR Functions (from fhir/common.js)
 Low-level helpers for working with FHIR resources:
@@ -153,6 +153,44 @@ const isMatch = matchProductIdentifier(
 
 // Get language
 const lang = getLanguage(context.epi);
+```
+
+#### Persona Vector Functions (from fhir/pv.js)
+Extract and analyze persona dimensions from Persona Vector collections:
+
+```javascript
+const { 
+    getHealthLiteracy,
+    getDigitalLiteracy,
+    getAllDimensions,
+    getDimensionsSummary,
+    DIMENSION_CODES
+} = require('@gravitate-health/lens-tool-lib');
+
+// Get specific dimensions
+const healthLit = getHealthLiteracy(context.pv);
+const digitalLit = getDigitalLiteracy(context.pv);
+
+// Check literacy level and adapt content
+if (healthLit && healthLit.value.includes('low')) {
+    // Simplify medical terminology
+}
+
+// Get all dimensions
+const dimensions = getAllDimensions(context.pv);
+
+// Get summary
+const summary = getDimensionsSummary(context.pv);
+console.log(`Total dimensions: ${summary.totalDimensions}`);
+console.log(`Available: ${summary.dimensionCodes.join(', ')}`);
+
+// Use dimension constants
+const employment = getDimensionByCode(context.pv, DIMENSION_CODES.EMPLOYMENT);
+
+// Find dimensions with numeric values > 5
+const highValues = findDimensionsByValue(context.pv, 
+    (value) => typeof value === 'number' && value > 5
+);
 ```
 
 ### HTML Functions (from html/dom.js)
@@ -249,8 +287,9 @@ See the `examples/` directory for complete working examples:
 - **simple-condition-lens.js**: Highlight sections based on patient conditions
 - **pregnancy-lens.js**: Pregnancy/breastfeeding warnings with age checks
 - **medication-interaction-lens.js**: Drug interaction warnings
+- **literacy-lens.js**: Adapt content based on health and digital literacy levels
 
-All examples use the functional approach with `createLens()`.
+All examples use the functional approach with `enhance()`, `getSpecification()`, and `explanation()`.
 
 ## 📄 Documentation
 
@@ -266,7 +305,8 @@ Full API documentation is available in `docs/API.md`.
 │   ├── fhir/
 │   │   ├── common.js       # Common FHIR helpers
 │   │   ├── ips.js          # IPS-specific functions
-│   │   └── epi.js          # ePI-specific functions (ePI IS FHIR)
+│   │   ├── epi.js          # ePI-specific functions (ePI IS FHIR)
+│   │   └── pv.js           # Persona Vector functions
 │   ├── html/
 │   │   └── dom.js          # DOM manipulation utilities
 │   ├── i18n/
@@ -277,7 +317,8 @@ Full API documentation is available in `docs/API.md`.
 ├── examples/
 │   ├── simple-condition-lens.js
 │   ├── pregnancy-lens.js
-│   └── medication-interaction-lens.js
+│   ├── medication-interaction-lens.js
+│   └── literacy-lens.js
 ├── docs/
 │   └── API.md
 ├── package.json

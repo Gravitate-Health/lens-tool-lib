@@ -214,6 +214,227 @@ const lang = EPIHelper.getLanguage(epiBundle);
 
 ---
 
+### PVHelper (Persona Vector)
+
+Functions for extracting and parsing persona dimensions from Persona Vector collections. These functions help access patient preferences, literacy levels, and other dimensions used for ePI focusing.
+
+#### Constants
+
+**`DIMENSION_CODES`**  
+Common dimension codes for quick reference:
+```javascript
+const { DIMENSION_CODES } = require('@gravitate-health/lens-tool-lib');
+
+DIMENSION_CODES.EMPLOYMENT              // "EMP"
+DIMENSION_CODES.SHARE_WILLINGLY         // "SHW"
+DIMENSION_CODES.WORK_LIFE               // "WKL"
+DIMENSION_CODES.EXTROVERT_INTROVERT     // "EVI"
+DIMENSION_CODES.EMOTIONAL_RATIONAL      // "ER"
+DIMENSION_CODES.HEALTH_LITERACY         // "HL"
+DIMENSION_CODES.DIGITAL_LITERACY        // "DL"
+DIMENSION_CODES.TOOL_SUPPORT_INTEREST   // "TSI"
+```
+
+**`PD_CODE_SYSTEM`**  
+The code system for persona dimensions:
+```javascript
+// "http://hl7.eu/fhir/ig/gravitate-health/CodeSystem/pd-type-cs"
+```
+
+#### `validatePersonaVector(pvBundle)`
+Validate if bundle is a proper Persona Vector collection.
+
+```javascript
+const validation = validatePersonaVector(pvBundle);
+// Returns: {valid: true/false, errors: [...]}
+```
+
+#### `getAllDimensions(pvBundle)`
+Get all dimension observations with extracted information.
+
+```javascript
+const dimensions = getAllDimensions(pvBundle);
+// Returns array of dimension objects with:
+// {
+//   id, status, dimensionCode, dimensionDisplay,
+//   subject, effectiveDateTime,
+//   value, valueType, codes, valueCodes
+// }
+```
+
+#### `getDimensionByCode(pvBundle, dimensionCode)`
+Get a specific dimension by its code.
+
+```javascript
+const healthLit = getDimensionByCode(pvBundle, "HL");
+// or
+const healthLit = getDimensionByCode(pvBundle, DIMENSION_CODES.HEALTH_LITERACY);
+```
+
+#### `getDimensionsByCodes(pvBundle, dimensionCodes)`
+Get multiple dimensions by their codes.
+
+```javascript
+const literacyDims = getDimensionsByCodes(pvBundle, [
+    DIMENSION_CODES.HEALTH_LITERACY,
+    DIMENSION_CODES.DIGITAL_LITERACY
+]);
+```
+
+#### `getHealthLiteracy(pvBundle)`
+Get health literacy dimension (convenience function).
+
+```javascript
+const healthLit = getHealthLiteracy(pvBundle);
+// Returns dimension with health literacy level
+```
+
+#### `getDigitalLiteracy(pvBundle)`
+Get digital literacy dimension (convenience function).
+
+```javascript
+const digitalLit = getDigitalLiteracy(pvBundle);
+// Returns dimension with digital literacy level
+```
+
+#### `getEmployment(pvBundle)`
+Get employment dimension (convenience function).
+
+```javascript
+const employment = getEmployment(pvBundle);
+// Returns dimension with employment status
+```
+
+#### `getDimensionsByValueType(pvBundle, valueType)`
+Filter dimensions by their value type.
+
+```javascript
+// Get all dimensions with string values
+const stringDims = getDimensionsByValueType(pvBundle, "String");
+
+// Get all dimensions with integer values
+const intDims = getDimensionsByValueType(pvBundle, "Integer");
+
+// Get all dimensions with CodeableConcept values
+const codedDims = getDimensionsByValueType(pvBundle, "CodeableConcept");
+```
+
+#### `findDimensionsByValue(pvBundle, predicate)`
+Find dimensions matching a value predicate.
+
+```javascript
+// Find dimensions with numeric values > 5
+const highValues = findDimensionsByValue(pvBundle, (value) => {
+    return typeof value === 'number' && value > 5;
+});
+
+// Find dimensions with text containing "high"
+const highLiteracy = findDimensionsByValue(pvBundle, (value) => {
+    return typeof value === 'string' && value.toLowerCase().includes('high');
+});
+```
+
+#### `matchDimensions(pvBundle, searchCriteria)`
+Match dimensions using complex search criteria.
+
+```javascript
+// Match by dimension code and value type
+const matches = matchDimensions(pvBundle, {
+    dimensionCode: DIMENSION_CODES.EMOTIONAL_RATIONAL,
+    valueType: "Integer"
+});
+
+// Match using a predicate for value
+const matches = matchDimensions(pvBundle, {
+    valuePredicate: (value) => value > 3
+});
+
+// Match by exact value
+const matches = matchDimensions(pvBundle, {
+    dimensionCode: DIMENSION_CODES.HEALTH_LITERACY,
+    value: "high literacy"
+});
+```
+
+#### `getSubject(pvBundle)`
+Get subject/patient identifier from PV bundle.
+
+```javascript
+const subject = getSubject(pvBundle);
+// Returns: "Pedro-patient" or patient reference
+```
+
+#### `groupDimensionsBySubject(pvBundle)`
+Group dimensions by subject (useful for multi-patient bundles).
+
+```javascript
+const grouped = groupDimensionsBySubject(pvBundle);
+// Returns: { "Pedro-patient": [dimension1, dimension2, ...] }
+```
+
+#### `getDimensionsSummary(pvBundle)`
+Get summary of all dimensions in the bundle.
+
+```javascript
+const summary = getDimensionsSummary(pvBundle);
+// Returns: {
+//   totalDimensions: 8,
+//   dimensionCodes: ["EMP", "HL", "DL", ...],
+//   valueTypes: { String: 3, Integer: 2, CodeableConcept: 3 },
+//   subject: "Pedro-patient",
+//   bundleId: "pedro-dimension-collection",
+//   identifier: "pd-collection-1"
+// }
+```
+
+#### `hasDimension(pvBundle, dimensionCode)`
+Check if bundle has a specific dimension.
+
+```javascript
+if (hasDimension(pvBundle, DIMENSION_CODES.HEALTH_LITERACY)) {
+    const healthLit = getHealthLiteracy(pvBundle);
+    // Use health literacy info...
+}
+```
+
+#### `getAvailableDimensionCodes(pvBundle)`
+Get all unique dimension codes in the bundle.
+
+```javascript
+const availableCodes = getAvailableDimensionCodes(pvBundle);
+// Returns: ["EMP", "SHW", "WKL", "HL", "DL", "TSI", ...]
+```
+
+#### Example: Using Persona Vector in a Lens
+
+```javascript
+const { 
+    getHealthLiteracy, 
+    getDigitalLiteracy,
+    DIMENSION_CODES 
+} = require('@gravitate-health/lens-tool-lib');
+
+async function enhance(context) {
+    // Get literacy levels from persona vector
+    const healthLit = getHealthLiteracy(context.pv);
+    const digitalLit = getDigitalLiteracy(context.pv);
+    
+    if (healthLit && healthLit.value.includes('low')) {
+        // Simplify medical terminology for low health literacy
+        return await simplifyMedicalTerms(context.html);
+    }
+    
+    if (digitalLit && digitalLit.value.includes('High')) {
+        // Add interactive digital features
+        return await addInteractiveElements(context.html);
+    }
+    
+    return context.html;
+}
+```
+
+---
+
 ### HTMLHelper
 
 Functions for DOM manipulation and HTML processing.
@@ -462,6 +683,7 @@ The library is organized into focused modules:
 - **fhir/common.js** - Common FHIR utilities for all bundle types
 - **fhir/ips.js** - IPS-specific resource extraction  
 - **fhir/epi.js** - ePI-specific functions
+- **fhir/pv.js** - Persona Vector dimension extraction
 - **html/dom.js** - DOM manipulation utilities
 - **i18n/language.js** - Translation and i18n
 - **utils/common.js** - General utility functions
@@ -472,6 +694,7 @@ Import only what you need:
 const { 
     getConditions,           // from fhir/ips
     findSectionsByCode,      // from fhir/epi
+    getHealthLiteracy,       // from fhir/pv
     addClasses,              // from html/dom
     ensureArray              // from utils/common
 } = require('@gravitate-health/lens-tool-lib');

@@ -10,6 +10,7 @@
 const fhirCommon = require('./fhir/common');
 const fhirIPS = require('./fhir/ips');
 const fhirEPI = require('./fhir/epi');
+const fhirPV = require('./fhir/pv');
 const htmlFunctions = require('./html/dom');
 const i18nFunctions = require('./i18n/language');
 const utilityFunctions = require('./utils/common');
@@ -19,6 +20,7 @@ module.exports = {
     ...fhirCommon,
     ...fhirIPS,
     ...fhirEPI,
+    ...fhirPV,
     ...htmlFunctions,
     ...i18nFunctions,
     ...utilityFunctions,
