@@ -34,7 +34,7 @@ function getLangKey(languageCode) {
 function translate(key, lang, dictionary, fallback = "en") {
         if (!dictionary) return key;
         
-        const langKey = this.getLangKey(lang);
+        const langKey = getLangKey(lang);
         
         if (dictionary[langKey] && dictionary[langKey][key]) {
             return dictionary[langKey][key];
@@ -123,8 +123,8 @@ const standardMessages = {
  * @returns {Object} Standard messages object
  */
 function getStandardMessages(lang) {
-        const langKey = this.getLangKey(lang);
-        return this.standardMessages[langKey] || this.standardMessages.en;
+        const langKey = getLangKey(lang);
+        return standardMessages[langKey] || standardMessages.en;
 }
 
 module.exports = {

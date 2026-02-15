@@ -3,6 +3,19 @@
  * Functions for DOM manipulation and HTML processing
  */
 
+/**
+ * Lazy-load JSDOM for Node.js environment
+ * This allows the library to work in both browser and Node.js contexts
+ * @private
+ * @returns {Object} JSDOM class
+ */
+function getJSDOM() {
+    try {
+        return require("jsdom").JSDOM;
+    } catch (e) {
+        throw new Error("JSDOM is required for Node.js environment. Install with: npm install jsdom");
+    }
+}
 
 /**
  * Add CSS classes to elements matching specific categories
@@ -22,8 +35,7 @@ async function addClasses(html, categories, enhanceTag, lensName) {
 
     // Handle both Node.js (JSDOM) and browser environments
     if (typeof window === "undefined") {
-        const jsdom = await import("jsdom");
-        const { JSDOM } = jsdom;
+        const JSDOM = getJSDOM();
         const dom = new JSDOM(html);
         document = dom.window.document;
     } else {
@@ -69,8 +81,7 @@ async function insertBanner(html, content, position = 'top', cssClass = '') {
     let document;
 
     if (typeof window === "undefined") {
-        const jsdom = await import("jsdom");
-        const { JSDOM } = jsdom;
+        const JSDOM = getJSDOM();
         const dom = new JSDOM(html);
         document = dom.window.document;
     } else {
@@ -125,8 +136,7 @@ async function traverseDOM(html, visitor) {
     let document;
 
     if (typeof window === "undefined") {
-        const jsdom = await import("jsdom");
-        const { JSDOM } = jsdom;
+        const JSDOM = getJSDOM();
         const dom = new JSDOM(html);
         document = dom.window.document;
     } else {

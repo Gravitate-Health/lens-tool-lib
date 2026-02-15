@@ -49,8 +49,7 @@ describe('Language and i18n Utilities', () => {
     
     describe('translate', () => {
         
-        // Note: translate function has a bug - uses 'this.getLangKey' instead of calling getLangKey directly
-        test.skip('should return key for dictionary (skipped due to bug in source)', () => {
+        test('should translate keys from dictionary', () => {
             const dictionary = {
                 en: {
                     greeting: 'Hello',
@@ -62,11 +61,47 @@ describe('Language and i18n Utilities', () => {
                 }
             };
             
-            // This test is skipped due to bug in translate function
-            expect(translate('greeting', 'en', dictionary)).toBe('greeting');
+            expect(translate('greeting', 'en', dictionary)).toBe('Hello');
+            expect(translate('greeting', 'pt', dictionary)).toBe('Olá');
+        });
+        
+        test('should use fallback language when key not found', () => {
+            const dictionary = {
+                en: {
+                    greeting: 'Hello'
+                },
+                pt: {
+                    other: 'Outro'
+                }
+            };
+            
+            expect(translate('greeting', 'pt', dictionary, 'en')).toBe('Hello');
+        });
+        
+        test('should return key when translation not found', () => {
+            const dictionary = {
+                en: {
+                    greeting: 'Hello'
+                }
+            };
+            
+            expect(translate('unknown-key', 'en', dictionary)).toBe('unknown-key');
+        });
+        
+        test('should handle language variants', () => {
+            const dictionary = {
+                en: {
+                    greeting: 'Hello'
+                },
+                pt: {
+                    greeting: 'Olá'
+                }
+            };
+            
+            expect(translate('greeting', 'pt-PT', dictionary)).toBe('Olá');
+            expect(translate('greeting', 'en-US', dictionary)).toBe('Hello');
         });
 
-        
         test('should handle null/undefined dictionary', () => {
             expect(translate('greeting', 'en', null)).toBe('greeting');
             expect(translate('greeting', 'en', undefined)).toBe('greeting');

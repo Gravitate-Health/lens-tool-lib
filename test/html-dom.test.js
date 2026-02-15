@@ -1,9 +1,5 @@
 /**
  * Tests for HTML DOM Utilities
- * 
- * Note: HTML DOM tests are currently skipped because the source code uses
- * dynamic imports (await import('jsdom')) which require experimental Jest support.
- * The functions work correctly in practice but need special Jest configuration.
  */
 
 const {
@@ -16,7 +12,7 @@ describe('HTML DOM Utilities', () => {
     
     describe('addClasses', () => {
         
-        test.skip('should add CSS class to matching elements', async () => {
+        test('should add CSS class to matching elements', async () => {
             const html = `
                 <html>
                     <body>
@@ -32,7 +28,7 @@ describe('HTML DOM Utilities', () => {
             expect(result).toContain('section-1');
         });
         
-        test.skip('should add multiple classes including lens name', async () => {
+        test('should add multiple classes including lens name', async () => {
             const html = `
                 <html>
                     <body>
@@ -47,7 +43,7 @@ describe('HTML DOM Utilities', () => {
             expect(result).toContain('my-lens');
         });
         
-        test.skip('should handle multiple categories', async () => {
+        test('should handle multiple categories', async () => {
             const html = `
                 <html>
                     <body>
@@ -74,18 +70,19 @@ describe('HTML DOM Utilities', () => {
                 .rejects.toThrow();
         });
         
-        test.skip('should throw error for empty result', async () => {
-            const html = '<html><body></body></html>';
+        test('should handle HTML with non-existent classes', async () => {
+            const html = '<html><body><div>Content</div></body></html>';
             
-            // This should work without throwing
+            // When no classes match, should still return the HTML unchanged
             const result = await addClasses(html, ['non-existent'], 'highlight');
             expect(result).toBeTruthy();
+            expect(result).toContain('Content');
         });
     });
     
     describe('insertBanner', () => {
         
-        test.skip('should insert banner at top by default', async () => {
+        test('should insert banner at top by default', async () => {
             const html = `
                 <html>
                     <body>
@@ -101,7 +98,7 @@ describe('HTML DOM Utilities', () => {
             expect(result.indexOf('Warning message')).toBeLessThan(result.indexOf('Existing content'));
         });
         
-        test.skip('should insert banner at bottom when specified', async () => {
+        test('should insert banner at bottom when specified', async () => {
             const html = `
                 <html>
                     <body>
@@ -117,7 +114,7 @@ describe('HTML DOM Utilities', () => {
             expect(result.indexOf('Existing content')).toBeLessThan(result.indexOf('Footer message'));
         });
         
-        test.skip('should add CSS class to banner', async () => {
+        test('should add CSS class to banner', async () => {
             const html = '<html><body><div>Content</div></body></html>';
             const banner = '<p>Banner text</p>';
             
@@ -137,7 +134,7 @@ describe('HTML DOM Utilities', () => {
     
     describe('traverseDOM', () => {
         
-        test.skip('should traverse and apply visitor function', async () => {
+        test('should traverse and apply visitor function', async () => {
             const html = `
                 <html>
                     <body>
