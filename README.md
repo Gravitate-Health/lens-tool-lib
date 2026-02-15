@@ -342,7 +342,36 @@ Apache 2.0
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+This library collects **common functions used across multiple lenses**. The contribution process is intentionally open, lean, and simple.
+
+### When to Add Functions
+- Function is needed by **2+ lenses** (avoid one-off utilities)
+- Eliminates significant boilerplate (aim for 70-80% code reduction)
+- Handles common FHIR/ePI patterns consistently
+- Improves performance or reliability across lenses
+
+### Contribution Workflow
+1. **Fork & Branch**: Create feature branch from `main`
+2. **Implement**: Add function to appropriate module (`src/fhir/`, `src/html/`, etc.)
+3. **Test**: Write tests with real FHIR fixtures (see `test/fixtures/`)
+4. **Document**: Add JSDoc + example in `docs/API.md`
+5. **PR**: Open pull request with clear description of use case
+6. **Review**: Maintainers will review for correctness, performance, and fit
+
+### PR Guidelines
+- Keep PRs focused (one function or related set)
+- Include test coverage for new functions
+- Follow existing patterns (JSDoc, early returns, error handling)
+- Demonstrate value across multiple lens use cases
+- Ensure both Node.js and browser compatibility for DOM functions
+
+### Code Review Focus
+- Correctness with FHIR R4 spec
+- Performance impact (remember 1-second timeout)
+- API clarity and consistency
+- Test coverage and edge cases
+
+By integrating validation and version control, this group of tools helps mitigate risks associated with code migration, ultimately leading to a smoother transition to new technologies.
 
 ## 📧 Support
 

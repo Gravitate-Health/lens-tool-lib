@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: API Documentation
+    url: https://github.com/Gravitate-Health/lens-tool-lib/blob/main/docs/API.md
+    about: Complete API reference with examples
+  - name: Quick Start Guide
+    url: https://github.com/Gravitate-Health/lens-tool-lib/blob/main/QUICKSTART.md
+    about: Get started building lenses in 5 minutes

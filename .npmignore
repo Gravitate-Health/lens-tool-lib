@@ -1,0 +1,23 @@
+# Exclude test files and development artifacts from npm package
+test/
+coverage/
+*.test.js
+
+# Exclude build and development configuration
+.github/
+.gitignore
+.vscode/
+.idea/
+
+# Exclude CI/CD files
+.travis.yml
+.gitlab-ci.yml
+circle.yml
+appveyor.yml
+
+# Exclude documentation that's not needed in package
+# (README.md, docs/, examples/ are intentionally included)
+
+# Exclude OS files
+.DS_Store
+Thumbs.db
