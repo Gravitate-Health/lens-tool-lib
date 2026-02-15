@@ -18,7 +18,7 @@
     "ips"
   ],
   "author": "Gravitate Health",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "dependencies": {
     "jsdom": "^20.0.0"
   },

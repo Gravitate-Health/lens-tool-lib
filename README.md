@@ -338,7 +338,7 @@ Full API documentation is available in `docs/API.md`.
 
 ## 📝 License
 
-MIT
+Apache 2.0
 
 ## 🤝 Contributing
 
